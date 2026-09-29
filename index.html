@@ -1,0 +1,1228 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>Aprende las Vocales - Conciencia Fonológica</title>
+  
+  <!-- Tailwind CSS CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  
+  <!-- Canvas Confetti Library for victory effects -->
+  <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
+  
+  <!-- Fallback Google Fonts for school lettering -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Andika:ital,wght@0,400;0,700;1,400&family=Comic+Neue:wght@400;700&family=Fredoka:wght@400;600;700&display=swap" rel="stylesheet">
+
+  <style>
+    @font-face {
+      font-family: 'Escolar_N';
+      src: url('Escolar_N.TTF') format('truetype'),
+           url('Escolar_N.ttf') format('truetype');
+      font-weight: normal;
+      font-style: normal;
+      font-display: swap;
+    }
+
+    /* Font stack prioritizing Escolar_N then educational fallbacks */
+    .font-escolar {
+      font-family: 'Escolar_N', 'Andika', 'Comic Neue', 'Fredoka', cursive, sans-serif;
+    }
+
+    /* Educational slate / dotted line background */
+    .bg-classroom {
+      background-color: #f8fafc;
+      background-image: radial-gradient(#cbd5e1 1.5px, transparent 1.5px), radial-gradient(#cbd5e1 1.5px, #f8fafc 1.5px);
+      background-size: 30px 30px;
+      background-position: 0 0, 15px 15px;
+    }
+
+    /* Card styling for letter slots */
+    .letter-card {
+      transition: all 0.2s cubic-bezier(0.34, 1.56, 0.64, 1);
+      user-select: none;
+      -webkit-user-select: none;
+    }
+
+    .vowel-slot {
+      position: relative;
+      background: white;
+      border: 3px dashed #94a3b8;
+    }
+
+    .vowel-slot.active-slot {
+      border: 4px solid #3b82f6;
+      background-color: #eff6ff;
+      box-shadow: 0 0 15px rgba(59, 130, 246, 0.4);
+      transform: scale(1.06);
+    }
+
+    .vowel-slot.filled-correct {
+      border: 3px solid #10b981;
+      background-color: #ecfdf5;
+      color: #047857;
+      animation: popIn 0.35s ease-out;
+    }
+
+    /* Key animations */
+    @keyframes popIn {
+      0% { transform: scale(0.7); opacity: 0.5; }
+      70% { transform: scale(1.15); }
+      100% { transform: scale(1); opacity: 1; }
+    }
+
+    @keyframes shakeError {
+      0%, 100% { transform: translateX(0); }
+      20%, 60% { transform: translateX(-8px); }
+      40%, 80% { transform: translateX(8px); }
+    }
+
+    .animate-shake {
+      animation: shakeError 0.4s ease-in-out;
+    }
+
+    /* Custom 3D tactile buttons for vowels */
+    .btn-3d {
+      transition: all 0.1s ease;
+      box-shadow: 0 6px 0 var(--btn-shadow-color);
+    }
+    .btn-3d:active {
+      transform: translateY(4px);
+      box-shadow: 0 2px 0 var(--btn-shadow-color);
+    }
+
+    /* Scrollbar customization */
+    ::-webkit-scrollbar {
+      width: 8px;
+      height: 8px;
+    }
+    ::-webkit-scrollbar-track {
+      background: #f1f5f9;
+      border-radius: 8px;
+    }
+    ::-webkit-scrollbar-thumb {
+      background: #cbd5e1;
+      border-radius: 8px;
+    }
+    ::-webkit-scrollbar-thumb:hover {
+      background: #94a3b8;
+    }
+  </style>
+</head>
+<body class="bg-classroom min-h-screen text-slate-800 flex flex-col font-escolar overflow-x-hidden antialiased select-none">
+
+  <!-- TOP NAVIGATION / HEADER -->
+  <header class="bg-white/90 backdrop-blur-md border-b border-slate-200 sticky top-0 z-30 shadow-sm px-4 py-3">
+    <div class="max-w-6xl mx-auto flex flex-wrap items-center justify-between gap-3">
+      
+      <!-- Logo & Title -->
+      <div class="flex items-center gap-3">
+        <div class="w-10 h-10 rounded-2xl bg-gradient-to-tr from-blue-500 to-indigo-600 text-white flex items-center justify-center font-bold text-2xl shadow-md">
+          A
+        </div>
+        <div>
+          <h1 class="text-xl md:text-2xl font-bold tracking-tight text-slate-800 leading-none">
+            Conciencia Fonológica
+          </h1>
+          <p class="text-xs text-slate-500 font-sans">Completa las vocales en la palabra</p>
+        </div>
+      </div>
+
+      <!-- Stats Bar & Mode Badges -->
+      <div class="flex items-center gap-2 sm:gap-4">
+        <!-- Streak counter -->
+        <div class="flex items-center gap-1.5 bg-amber-50 border border-amber-200 px-3 py-1.5 rounded-full text-amber-700 font-bold text-sm shadow-sm">
+          <span class="text-lg">🔥</span>
+          <span id="streakCount">0</span>
+        </div>
+
+        <!-- Words completed -->
+        <div class="flex items-center gap-1.5 bg-emerald-50 border border-emerald-200 px-3 py-1.5 rounded-full text-emerald-700 font-bold text-sm shadow-sm">
+          <span class="text-lg">⭐</span>
+          <span id="scoreCount">0</span>
+        </div>
+
+        <!-- Teacher Mode Button -->
+        <button id="btnTeacherMode" onclick="openTeacherModal()" class="flex items-center gap-2 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 border border-indigo-200 px-3.5 py-1.5 rounded-full font-bold text-sm transition-all shadow-sm active:scale-95">
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C20.832 18.477 19.246 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"></path></svg>
+          <span>Modo Docente</span>
+        </button>
+
+        <!-- Fullscreen Button -->
+        <button id="btnFullscreen" onclick="toggleFullscreen()" class="p-2 text-slate-600 hover:text-slate-900 bg-slate-100 hover:bg-slate-200 rounded-full transition-all" title="Pantalla Completa">
+          <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 8V4m0 0h4M4 4l5 5m11-5h-4m4 0v4m0-4l-5 5M4 16v4m0 0h4m-4 0l5-5m11 5l-5-5m5 5v-4m0 4h-4"></path></svg>
+        </button>
+      </div>
+
+    </div>
+  </header>
+
+  <!-- MAIN WORKSPACE -->
+  <main class="flex-1 max-w-5xl w-full mx-auto p-4 md:p-6 flex flex-col justify-between gap-6">
+    
+    <!-- Status & Mode Notification Bar -->
+    <div class="flex items-center justify-between gap-2">
+      <div id="categoryBadge" class="inline-flex items-center gap-2 bg-white border border-slate-200 px-4 py-1.5 rounded-xl text-sm font-bold text-slate-600 shadow-sm">
+        <span class="w-2.5 h-2.5 rounded-full bg-blue-500"></span>
+        <span id="categoryName">Colegio</span>
+      </div>
+
+      <div id="teacherModeIndicator" class="hidden inline-flex items-center gap-2 bg-amber-100 border border-amber-300 px-3 py-1 rounded-xl text-xs font-bold text-amber-800">
+        <span>🔒 Modo Docente (Sin Dibujo)</span>
+        <button onclick="exitTeacherMode()" class="text-amber-900 underline hover:text-amber-700 ml-1">Volver a Aleatorio</button>
+      </div>
+    </div>
+
+    <!-- MAIN BOARD CARD -->
+    <div class="bg-white rounded-3xl p-6 md:p-10 shadow-xl border border-slate-200/80 flex flex-col items-center justify-center relative min-h-[320px] transition-all">
+      
+      <!-- IMAGE / ILLUSTRATION CONTAINER (Hidden in Teacher Mode) -->
+      <div id="imageContainer" class="mb-6 flex flex-col items-center justify-center min-h-[140px] md:min-h-[170px]">
+        <div id="wordIcon" class="text-7xl md:text-9xl transition-all duration-300 transform hover:scale-110 cursor-pointer filter drop-shadow-md" onclick="speakCurrentWord()">
+          ✏️
+        </div>
+      </div>
+
+      <!-- TEACHER MODE EXPLICIT BADGE (When drawing is hidden) -->
+      <div id="teacherNoIconBox" class="hidden mb-6 py-6 px-8 bg-slate-50 border-2 border-dashed border-slate-300 rounded-2xl text-center">
+        <span class="text-4xl block mb-2">📖</span>
+        <p class="text-sm font-semibold text-slate-500">Dibujo oculto por solicitud del docente</p>
+      </div>
+
+      <!-- WORD SLOTS CONTAINER -->
+      <div id="wordSlots" class="flex flex-wrap items-center justify-center gap-2 md:gap-4 my-4 max-w-full">
+        <!-- Letter slots will be dynamically generated here -->
+      </div>
+
+      <!-- AUDIO PRONUNCIATION / ACTION BUTTONS -->
+      <div class="mt-6 flex items-center gap-3">
+        <button onclick="speakCurrentWord()" class="flex items-center gap-2 bg-sky-100 hover:bg-sky-200 text-sky-800 px-4 py-2 rounded-2xl font-bold text-sm transition-all shadow-sm active:scale-95">
+          <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.536 8.464a5 5 0 010 7.072m2.828-9.9a9 9 0 010 12.728M5.586 15H4a1 1 0 01-1-1v-4a1 1 0 011-1h1.586l4.707-4.707C10.923 3.663 12 4.109 12 5v14c0 .891-1.077 1.337-1.707.707L5.586 15z"></path></svg>
+          <span>Escuchar Palabra</span>
+        </button>
+
+        <button onclick="skipWord()" class="flex items-center gap-2 bg-slate-100 hover:bg-slate-200 text-slate-700 px-4 py-2 rounded-2xl font-bold text-sm transition-all shadow-sm active:scale-95" title="Siguiente Palabra">
+          <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 5l7 7-7 7M5 5l7 7-7 7"></path></svg>
+          <span>Saltar</span>
+        </button>
+      </div>
+
+    </div>
+
+    <!-- TACTILE VOWEL KEYBOARD (BOTTOM) -->
+    <div class="w-full bg-white/80 backdrop-blur-md rounded-3xl p-4 md:p-6 shadow-lg border border-slate-200">
+      <p class="text-center text-xs md:text-sm font-semibold text-slate-500 mb-3 font-sans uppercase tracking-wider">
+        Toca o pulsa la vocal correspondiente
+      </p>
+
+      <div class="grid grid-cols-5 gap-2.5 sm:gap-4 md:gap-6 max-w-3xl mx-auto">
+        <!-- Vowel A -->
+        <button onclick="handleVowelInput('A')" 
+          style="--btn-shadow-color: #dc2626;" 
+          class="btn-3d bg-red-500 hover:bg-red-400 text-white rounded-2xl py-3 md:py-5 flex flex-col items-center justify-center font-bold text-3xl md:text-5xl border border-red-600 cursor-pointer">
+          <span>A</span>
+        </button>
+
+        <!-- Vowel E -->
+        <button onclick="handleVowelInput('E')" 
+          style="--btn-shadow-color: #2563eb;" 
+          class="btn-3d bg-blue-500 hover:bg-blue-400 text-white rounded-2xl py-3 md:py-5 flex flex-col items-center justify-center font-bold text-3xl md:text-5xl border border-blue-600 cursor-pointer">
+          <span>E</span>
+        </button>
+
+        <!-- Vowel I -->
+        <button onclick="handleVowelInput('I')" 
+          style="--btn-shadow-color: #059669;" 
+          class="btn-3d bg-emerald-500 hover:bg-emerald-400 text-white rounded-2xl py-3 md:py-5 flex flex-col items-center justify-center font-bold text-3xl md:text-5xl border border-emerald-600 cursor-pointer">
+          <span>I</span>
+        </button>
+
+        <!-- Vowel O -->
+        <button onclick="handleVowelInput('O')" 
+          style="--btn-shadow-color: #d97706;" 
+          class="btn-3d bg-amber-500 hover:bg-amber-400 text-white rounded-2xl py-3 md:py-5 flex flex-col items-center justify-center font-bold text-3xl md:text-5xl border border-amber-600 cursor-pointer">
+          <span>O</span>
+        </button>
+
+        <!-- Vowel U -->
+        <button onclick="handleVowelInput('U')" 
+          style="--btn-shadow-color: #7c3aed;" 
+          class="btn-3d bg-purple-500 hover:bg-purple-400 text-white rounded-2xl py-3 md:py-5 flex flex-col items-center justify-center font-bold text-3xl md:text-5xl border border-purple-600 cursor-pointer">
+          <span>U</span>
+        </button>
+      </div>
+    </div>
+
+  </main>
+
+  <!-- TEACHER / MANUAL SELECTION MODAL -->
+  <div id="teacherModal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-4 opacity-0 pointer-events-none transition-opacity duration-300">
+    <div class="bg-white rounded-3xl max-w-3xl w-full max-h-[90vh] flex flex-col shadow-2xl overflow-hidden border border-slate-100 transform scale-95 transition-transform duration-300">
+      
+      <!-- Modal Header -->
+      <div class="p-5 bg-indigo-600 text-white flex items-center justify-between">
+        <div class="flex items-center gap-3">
+          <span class="text-2xl">📚</span>
+          <div>
+            <h2 class="text-xl font-bold">Modo Docente - Selección Manual</h2>
+            <p class="text-xs text-indigo-100 font-sans">Elige una palabra específica (En este modo no se muestran los dibujos)</p>
+          </div>
+        </div>
+        <button onclick="closeTeacherModal()" class="text-indigo-200 hover:text-white p-2 rounded-xl transition-colors">
+          <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+        </button>
+      </div>
+
+      <!-- Filters and Search -->
+      <div class="p-4 bg-slate-50 border-b border-slate-200 flex flex-col sm:flex-row gap-3">
+        <!-- Search Input -->
+        <div class="relative flex-1">
+          <input type="text" id="teacherSearchInput" oninput="filterTeacherWords()" placeholder="Buscar palabra..." class="w-full pl-10 pr-4 py-2.5 rounded-2xl border border-slate-300 focus:outline-none focus:ring-2 focus:ring-indigo-500 font-sans text-sm">
+          <svg class="w-5 h-5 text-slate-400 absolute left-3 top-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path></svg>
+        </div>
+
+        <!-- Category Select -->
+        <select id="teacherCategoryFilter" onchange="filterTeacherWords()" class="px-4 py-2.5 rounded-2xl border border-slate-300 focus:outline-none focus:ring-2 focus:ring-indigo-500 font-sans text-sm bg-white">
+          <option value="ALL">Todas las Categorías</option>
+          <option value="Colegio">Colegio</option>
+          <option value="Animales">Animales</option>
+          <option value="Casa">Casa</option>
+          <option value="Alimentos">Alimentos</option>
+          <option value="Cuerpo">Cuerpo</option>
+          <option value="Ropa">Ropa</option>
+          <option value="Naturaleza">Naturaleza</option>
+          <option value="Transportes">Transportes</option>
+          <option value="Objetos">Objetos</option>
+          <option value="Profesiones">Profesiones</option>
+          <option value="Acciones">Acciones</option>
+        </select>
+      </div>
+
+      <!-- Words List Container -->
+      <div id="teacherWordsGrid" class="p-4 overflow-y-auto flex-1 grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-2.5">
+        <!-- Dynamically rendered word cards -->
+      </div>
+
+      <!-- Modal Footer -->
+      <div class="p-4 bg-slate-100 border-t border-slate-200 flex items-center justify-between text-xs text-slate-500 font-sans">
+        <span id="teacherWordCount">Mostrando 0 palabras</span>
+        <button onclick="closeTeacherModal()" class="px-4 py-2 bg-slate-200 hover:bg-slate-300 text-slate-700 font-bold rounded-xl transition-colors">
+          Cerrar
+        </button>
+      </div>
+
+    </div>
+  </div>
+
+  <script>
+    // COMPREHENSIVE 400+ EVERYDAY SCHOOL WORDS DATABASE
+    const WORD_DATABASE = [
+      // COLEGIO (40+)
+      { word: "LÁPIZ", cat: "Colegio", icon: "✏️" },
+      { word: "MESA", cat: "Colegio", icon: "🪑" },
+      { word: "SILLA", cat: "Colegio", icon: "🪑" },
+      { word: "LIBRO", cat: "Colegio", icon: "📖" },
+      { word: "GOMA", cat: "Colegio", icon: "🧹" },
+      { word: "REGLA", cat: "Colegio", icon: "📏" },
+      { word: "CLASE", cat: "Colegio", icon: "🏫" },
+      { word: "PATIO", cat: "Colegio", icon: "🛝" },
+      { word: "PAPEL", cat: "Colegio", icon: "📄" },
+      { word: "TIJERAS", cat: "Colegio", icon: "✂️" },
+      { word: "COLEGIO", cat: "Colegio", icon: "🏫" },
+      { word: "TIZA", cat: "Colegio", icon: "🖍️" },
+      { word: "MOCHILA", cat: "Colegio", icon: "🎒" },
+      { word: "PINCEL", cat: "Colegio", icon: "🖌️" },
+      { word: "PINTURA", cat: "Colegio", icon: "🎨" },
+      { word: "LIBRETA", cat: "Colegio", icon: "📓" },
+      { word: "MAPA", cat: "Colegio", icon: "🗺️" },
+      { word: "PIZARRA", cat: "Colegio", icon: "🖥️" },
+      { word: "ESTUCHE", cat: "Colegio", icon: "👝" },
+      { word: "GRAPA", cat: "Colegio", icon: "📎" },
+      { word: "PEGA", cat: "Colegio", icon: "🧪" },
+      { word: "FICHA", cat: "Colegio", icon: "🎴" },
+      { word: "CUENTO", cat: "Colegio", icon: "📚" },
+      { word: "RELOJ", cat: "Colegio", icon: "⏰" },
+      { word: "BANCO", cat: "Colegio", icon: "🪑" },
+      { word: "TECHO", cat: "Colegio", icon: "🏠" },
+      { word: "PARED", cat: "Colegio", icon: "🧱" },
+      { word: "PUERTA", cat: "Colegio", icon: "🚪" },
+      { word: "VENTANA", cat: "Colegio", icon: "🪟" },
+      { word: "ORDENADOR", cat: "Colegio", icon: "💻" },
+      { word: "TECLADO", cat: "Colegio", icon: "⌨️" },
+      { word: "RATÓN", cat: "Colegio", icon: "🖱️" },
+      { word: "PAPELERA", cat: "Colegio", icon: "🗑️" },
+      { word: "DIBUJO", cat: "Colegio", icon: "🖼️" },
+      { word: "AGENDA", cat: "Colegio", icon: "📅" },
+      { word: "CARPETA", cat: "Colegio", icon: "📁" },
+      { word: "TAREA", cat: "Colegio", icon: "📝" },
+      { word: "CLIP", cat: "Colegio", icon: "📎" },
+      { word: "FOLIO", cat: "Colegio", icon: "📄" },
+      { word: "CERAS", cat: "Colegio", icon: "🖍️" },
+
+      // ANIMALES (60+)
+      { word: "PERRO", cat: "Animales", icon: "🐶" },
+      { word: "GATO", cat: "Animales", icon: "🐱" },
+      { word: "VACA", cat: "Animales", icon: "🐮" },
+      { word: "OVEJA", cat: "Animales", icon: "🐑" },
+      { word: "CERDO", cat: "Animales", icon: "🐷" },
+      { word: "CABALLO", cat: "Animales", icon: "🐴" },
+      { word: "GALLINA", cat: "Animales", icon: "🐔" },
+      { word: "PATO", cat: "Animales", icon: "🦆" },
+      { word: "PÁJARO", cat: "Animales", icon: "🐦" },
+      { word: "PEZ", cat: "Animales", icon: "🐟" },
+      { word: "LEÓN", cat: "Animales", icon: "🦁" },
+      { word: "TIGRE", cat: "Animales", icon: "🐯" },
+      { word: "OSO", cat: "Animales", icon: "🐻" },
+      { word: "MONO", cat: "Animales", icon: "🐵" },
+      { word: "ELEFANTE", cat: "Animales", icon: "🐘" },
+      { word: "JIRAFA", cat: "Animales", icon: "🦒" },
+      { word: "ZORRO", cat: "Animales", icon: "🦊" },
+      { word: "LOBO", cat: "Animales", icon: "🐺" },
+      { word: "CONEJO", cat: "Animales", icon: "🐰" },
+      { word: "RATÓN", cat: "Animales", icon: "🐭" },
+      { word: "RANA", cat: "Animales", icon: "🐸" },
+      { word: "TORTUGA", cat: "Animales", icon: "🐢" },
+      { word: "SERPIENTE", cat: "Animales", icon: "🐍" },
+      { word: "COCODRILO", cat: "Animales", icon: "🐊" },
+      { word: "BALLENA", cat: "Animales", icon: "🐳" },
+      { word: "DELFÍN", cat: "Animales", icon: "🐬" },
+      { word: "TIBURÓN", cat: "Animales", icon: "🦈" },
+      { word: "PULPO", cat: "Animales", icon: "🐙" },
+      { word: "CANGREJO", cat: "Animales", icon: "🦀" },
+      { word: "ABEJA", cat: "Animales", icon: "🐝" },
+      { word: "MARIPOSA", cat: "Animales", icon: "🦋" },
+      { word: "MOSCA", cat: "Animales", icon: "🪰" },
+      { word: "ARAÑA", cat: "Animales", icon: "🕷️" },
+      { word: "CARACOL", cat: "Animales", icon: "🐌" },
+      { word: "LORO", cat: "Animales", icon: "🦜" },
+      { word: "ÁGUILA", cat: "Animales", icon: "🦅" },
+      { word: "BÚHO", cat: "Animales", icon: "🦉" },
+      { word: "PINGÜINO", cat: "Animales", icon: "🐧" },
+      { word: "FLAMENCO", cat: "Animales", icon: "🦩" },
+      { word: "CAMELLO", cat: "Animales", icon: "🐪" },
+      { word: "CEBRA", cat: "Animales", icon: "🦓" },
+      { word: "HIPOPÓTAMO", cat: "Animales", icon: "🦛" },
+      { word: "RINOCERONTE", cat: "Animales", icon: "🦏" },
+      { word: "CANGURO", cat: "Animales", icon: "🦘" },
+      { word: "KOALA", cat: "Animales", icon: "🐨" },
+      { word: "PANDA", cat: "Animales", icon: "🐼" },
+      { word: "CIERVO", cat: "Animales", icon: "🦌" },
+      { word: "CASTOR", cat: "Animales", icon: "🦫" },
+      { word: "ERIZO", cat: "Animales", icon: "🦔" },
+      { word: "BURRO", cat: "Animales", icon: "🫏" },
+      { word: "GALLO", cat: "Animales", icon: "🐓" },
+      { word: "POLLITO", cat: "Animales", icon: "🐥" },
+      { word: "FOCA", cat: "Animales", icon: "🦭" },
+      { word: "GORILA", cat: "Animales", icon: "🦍" },
+      { word: "GÜEPARDO", cat: "Animales", icon: "🐆" },
+      { word: "GUSANO", cat: "Animales", icon: "🐛" },
+      { word: "HORMIGA", cat: "Animales", icon: "🐜" },
+      { word: "GRILLO", cat: "Animales", icon: "🦗" },
+      { word: "MARIQUITA", cat: "Animales", icon: "🐞" },
+      { word: "MEDUSA", cat: "Animales", icon: "🪼" },
+
+      // CASA (45+)
+      { word: "CAMA", cat: "Casa", icon: "🛏️" },
+      { word: "SOFÁ", cat: "Casa", icon: "🛋️" },
+      { word: "LÁMPARA", cat: "Casa", icon: "💡" },
+      { word: "TELE", cat: "Casa", icon: "📺" },
+      { word: "COCINA", cat: "Casa", icon: "🍳" },
+      { word: "BAÑO", cat: "Casa", icon: "🛁" },
+      { word: "SALÓN", cat: "Casa", icon: "🛋️" },
+      { word: "CUARTO", cat: "Casa", icon: "🚪" },
+      { word: "JARDÍN", cat: "Casa", icon: "🏡" },
+      { word: "DUCHA", cat: "Casa", icon: "🚿" },
+      { word: "GRIFO", cat: "Casa", icon: "🚰" },
+      { word: "JABÓN", cat: "Casa", icon: "🧼" },
+      { word: "TOALLA", cat: "Casa", icon: "🧴" },
+      { word: "ESPEJO", cat: "Casa", icon: "🪞" },
+      { word: "PEINE", cat: "Casa", icon: "🪮" },
+      { word: "CEPILLO", cat: "Casa", icon: "🪥" },
+      { word: "PLATO", cat: "Casa", icon: "🍽️" },
+      { word: "VASO", cat: "Casa", icon: "🥛" },
+      { word: "TAZA", cat: "Casa", icon: "☕" },
+      { word: "CUCHARA", cat: "Casa", icon: "🥄" },
+      { word: "TENEDOR", cat: "Casa", icon: "🍴" },
+      { word: "CUCHILLO", cat: "Casa", icon: "🔪" },
+      { word: "SARTÉN", cat: "Casa", icon: "🍳" },
+      { word: "OLLA", cat: "Casa", icon: "🍲" },
+      { word: "HORNO", cat: "Casa", icon: "♨️" },
+      { word: "NEVERA", cat: "Casa", icon: "🧊" },
+      { word: "COJÍN", cat: "Casa", icon: "🛋️" },
+      { word: "MANTA", cat: "Casa", icon: "🧶" },
+      { word: "ARMARIO", cat: "Casa", icon: "🚪" },
+      { word: "CAJÓN", cat: "Casa", icon: "🗄️" },
+      { word: "ALMOHADA", cat: "Casa", icon: "🛏️" },
+      { word: "ESTANTE", cat: "Casa", icon: "📚" },
+      { word: "LAVABO", cat: "Casa", icon: "🚰" },
+      { word: "CANDADO", cat: "Casa", icon: "🔒" },
+      { word: "LLAVE", cat: "Casa", icon: "🔑" },
+      { word: "TIMBRE", cat: "Casa", icon: "🔔" },
+      { word: "GARAJE", cat: "Casa", icon: "🚗" },
+      { word: "TEJADO", cat: "Casa", icon: "🏠" },
+      { word: "CHIMENEA", cat: "Casa", icon: "🪵" },
+      { word: "PASILLO", cat: "Casa", icon: "🚪" },
+      { word: "ALFOMBRA", cat: "Casa", icon: "🟫" },
+      { word: "PERCHERO", cat: "Casa", icon: "🧥" },
+      { word: "MANDO", cat: "Casa", icon: "🎮" },
+      { word: "RADIO", cat: "Casa", icon: "📻" },
+      { word: "CUADRO", cat: "Casa", icon: "🖼️" },
+
+      // ALIMENTOS (50+)
+      { word: "PAN", cat: "Alimentos", icon: "🍞" },
+      { word: "LECHE", cat: "Alimentos", icon: "🥛" },
+      { word: "QUESO", cat: "Alimentos", icon: "🧀" },
+      { word: "HUEVO", cat: "Alimentos", icon: "🥚" },
+      { word: "MANZANA", cat: "Alimentos", icon: "🍎" },
+      { word: "PERA", cat: "Alimentos", icon: "🍐" },
+      { word: "PLÁTANO", cat: "Alimentos", icon: "🍌" },
+      { word: "NARANJA", cat: "Alimentos", icon: "🍊" },
+      { word: "LIMÓN", cat: "Alimentos", icon: "🍋" },
+      { word: "FRESA", cat: "Alimentos", icon: "🍓" },
+      { word: "UVA", cat: "Alimentos", icon: "🍇" },
+      { word: "MELÓN", cat: "Alimentos", icon: "🍈" },
+      { word: "SANDÍA", cat: "Alimentos", icon: "🍉" },
+      { word: "MELOCOTÓN", cat: "Alimentos", icon: "🍑" },
+      { word: "CEREZA", cat: "Alimentos", icon: "🍒" },
+      { word: "TOMATE", cat: "Alimentos", icon: "🍅" },
+      { word: "PATATA", cat: "Alimentos", icon: "🥔" },
+      { word: "ZANAHORIA", cat: "Alimentos", icon: "🥕" },
+      { word: "LECHUGA", cat: "Alimentos", icon: "🥬" },
+      { word: "CEBOLLA", cat: "Alimentos", icon: "🧅" },
+      { word: "AJO", cat: "Alimentos", icon: "🧄" },
+      { word: "SOPA", cat: "Alimentos", icon: "🍜" },
+      { word: "ARROZ", cat: "Alimentos", icon: "🍚" },
+      { word: "PASTA", cat: "Alimentos", icon: "🍝" },
+      { word: "CARNE", cat: "Alimentos", icon: "🥩" },
+      { word: "PESCADO", cat: "Alimentos", icon: "🐟" },
+      { word: "TARTA", cat: "Alimentos", icon: "🎂" },
+      { word: "GALLETA", cat: "Alimentos", icon: "🍪" },
+      { word: "CHOCOLATE", cat: "Alimentos", icon: "🍫" },
+      { word: "HELADO", cat: "Alimentos", icon: "🍦" },
+      { word: "ZUMO", cat: "Alimentos", icon: "🧃" },
+      { word: "AGUA", cat: "Alimentos", icon: "💧" },
+      { word: "MIEL", cat: "Alimentos", icon: "🍯" },
+      { word: "ACEITE", cat: "Alimentos", icon: "🪔" },
+      { word: "SAL", cat: "Alimentos", icon: "🧂" },
+      { word: "YOGUR", cat: "Alimentos", icon: "🍦" },
+      { word: "PIZZA", cat: "Alimentos", icon: "🍕" },
+      { word: "HAMBURGUESA", cat: "Alimentos", icon: "🍔" },
+      { word: "MACARRÓN", cat: "Alimentos", icon: "🍜" },
+      { word: "PASTEL", cat: "Alimentos", icon: "🧁" },
+      { word: "DULCE", cat: "Alimentos", icon: "🍬" },
+      { word: "CARAMELO", cat: "Alimentos", icon: "🍭" },
+      { word: "PIÑA", cat: "Alimentos", icon: "🍍" },
+      { word: "COCO", cat: "Alimentos", icon: "🥥" },
+      { word: "KIWI", cat: "Alimentos", icon: "🥝" },
+      { word: "AGUACATE", cat: "Alimentos", icon: "🥑" },
+      { word: "MAÍZ", cat: "Alimentos", icon: "🌽" },
+      { word: "SETAS", cat: "Alimentos", icon: "🍄" },
+      { word: "NUECES", cat: "Alimentos", icon: "🥜" },
+      { word: "PANQUEQUE", cat: "Alimentos", icon: "🥞" },
+
+      // CUERPO (40+)
+      { word: "CABEZA", cat: "Cuerpo", icon: "👤" },
+      { word: "PELO", cat: "Cuerpo", icon: "💇" },
+      { word: "CARA", cat: "Cuerpo", icon: "😀" },
+      { word: "OJO", cat: "Cuerpo", icon: "👁️" },
+      { word: "OREJA", cat: "Cuerpo", icon: "👂" },
+      { word: "NARIZ", cat: "Cuerpo", icon: "👃" },
+      { word: "BOCA", cat: "Cuerpo", icon: "👄" },
+      { word: "DIENTE", cat: "Cuerpo", icon: "🦷" },
+      { word: "LENGUA", cat: "Cuerpo", icon: "👅" },
+      { word: "CUELLO", cat: "Cuerpo", icon: "🦒" },
+      { word: "HOMBRO", cat: "Cuerpo", icon: "👔" },
+      { word: "BRAZO", cat: "Cuerpo", icon: "💪" },
+      { word: "MANO", cat: "Cuerpo", icon: "✋" },
+      { word: "DEDO", cat: "Cuerpo", icon: "☝️" },
+      { word: "PECHO", cat: "Cuerpo", icon: "🫁" },
+      { word: "BARRIGA", cat: "Cuerpo", icon: "🤰" },
+      { word: "ESPALDA", cat: "Cuerpo", icon: "🧍" },
+      { word: "PIERNA", cat: "Cuerpo", icon: "🦵" },
+      { word: "RODILLA", cat: "Cuerpo", icon: "🦵" },
+      { word: "PIE", cat: "Cuerpo", icon: "🦶" },
+      { word: "UÑA", cat: "Cuerpo", icon: "💅" },
+      { word: "CODO", cat: "Cuerpo", icon: "💪" },
+      { word: "MUÑECA", cat: "Cuerpo", icon: "⌚" },
+      { word: "TOBILLO", cat: "Cuerpo", icon: "🦶" },
+      { word: "TALÓN", cat: "Cuerpo", icon: "👠" },
+      { word: "CEJA", cat: "Cuerpo", icon: "🤨" },
+      { word: "PESTAÑA", cat: "Cuerpo", icon: "👁️" },
+      { word: "BARBILLA", cat: "Cuerpo", icon: "🧔" },
+      { word: "MEJILLA", cat: "Cuerpo", icon: "😊" },
+      { word: "CORAZÓN", cat: "Cuerpo", icon: "❤️" },
+      { word: "HUESO", cat: "Cuerpo", icon: "🦴" },
+      { word: "SANGRE", cat: "Cuerpo", icon: "🩸" },
+      { word: "PIEL", cat: "Cuerpo", icon: "🖐️" },
+      { word: "OMBLIGO", cat: "Cuerpo", icon: "👶" },
+      { word: "BIGOTE", cat: "Cuerpo", icon: "🥸" },
+      { word: "BARBA", cat: "Cuerpo", icon: "🧔" },
+      { word: "CEREBRO", cat: "Cuerpo", icon: "🧠" },
+      { word: "PULMÓN", cat: "Cuerpo", icon: "🫁" },
+      { word: "PUÑO", cat: "Cuerpo", icon: "✊" },
+      { word: "CINTURA", cat: "Cuerpo", icon: "🕺" },
+
+      // ROPA (35+)
+      { word: "CAMISA", cat: "Ropa", icon: "👔" },
+      { word: "CAMISETA", cat: "Ropa", icon: "👕" },
+      { word: "PANTALÓN", cat: "Ropa", icon: "👖" },
+      { word: "FALDA", cat: "Ropa", icon: "👗" },
+      { word: "VESTIDO", cat: "Ropa", icon: "👗" },
+      { word: "ABRIGO", cat: "Ropa", icon: "🧥" },
+      { word: "CHAQUETA", cat: "Ropa", icon: "🧥" },
+      { word: "JERSEY", cat: "Ropa", icon: "🧶" },
+      { word: "ZAPATO", cat: "Ropa", icon: "👞" },
+      { word: "ZAPATILLA", cat: "Ropa", icon: "👟" },
+      { word: "BOTA", cat: "Ropa", icon: "🥾" },
+      { word: "GUANTE", cat: "Ropa", icon: "🧤" },
+      { word: "GORRO", cat: "Ropa", icon: "🧢" },
+      { word: "SOMBRERO", cat: "Ropa", icon: "🎩" },
+      { word: "BUFANDA", cat: "Ropa", icon: "🧣" },
+      { word: "CALCETÍN", cat: "Ropa", icon: "🧦" },
+      { word: "PIJAMA", cat: "Ropa", icon: "👔" },
+      { word: "BAÑADOR", cat: "Ropa", icon: "🩳" },
+      { word: "CINTURÓN", cat: "Ropa", icon: "⚡" },
+      { word: "GAFAS", cat: "Ropa", icon: "👓" },
+      { word: "BOLSO", cat: "Ropa", icon: "👜" },
+      { word: "BOTÓN", cat: "Ropa", icon: "🔘" },
+      { word: "BOLSILLO", cat: "Ropa", icon: "👖" },
+      { word: "GORRA", cat: "Ropa", icon: "🧢" },
+      { word: "CHÁNDAL", cat: "Ropa", icon: "🏃" },
+      { word: "CORBATA", cat: "Ropa", icon: "👔" },
+      { word: "DELANTAL", cat: "Ropa", icon: "🧑‍🍳" },
+      { word: "PARAGUAS", cat: "Ropa", icon: "☂️" },
+      { word: "CHANCLAS", cat: "Ropa", icon: "🩴" },
+      { word: "MEDIAS", cat: "Ropa", icon: "🧦" },
+      { word: "DISFRAZ", cat: "Ropa", icon: "🎭" },
+      { word: "CAPA", cat: "Ropa", icon: "🦸" },
+      { word: "CORONA", cat: "Ropa", icon: "👑" },
+      { word: "ANILLO", cat: "Ropa", icon: "💍" },
+      { word: "COLLAR", cat: "Ropa", icon: "📿" },
+
+      // NATURALEZA Y TIEMPO (45+)
+      { word: "SOL", cat: "Naturaleza", icon: "☀️" },
+      { word: "LUNA", cat: "Naturaleza", icon: "🌙" },
+      { word: "ESTRELLA", cat: "Naturaleza", icon: "⭐" },
+      { word: "NUBE", cat: "Naturaleza", icon: "☁️" },
+      { word: "LLUVIA", cat: "Naturaleza", icon: "🌧️" },
+      { word: "NIEVE", cat: "Naturaleza", icon: "❄️" },
+      { word: "VIENTO", cat: "Naturaleza", icon: "💨" },
+      { word: "RAYO", cat: "Naturaleza", icon: "⚡" },
+      { word: "ARCOÍRIS", cat: "Naturaleza", icon: "🌈" },
+      { word: "CIELO", cat: "Naturaleza", icon: "🌤️" },
+      { word: "MAR", cat: "Naturaleza", icon: "🌊" },
+      { word: "RÍO", cat: "Naturaleza", icon: "🏞️" },
+      { word: "LAGO", cat: "Naturaleza", icon: "🏞️" },
+      { word: "MONTAÑA", cat: "Naturaleza", icon: "⛰️" },
+      { word: "BOSQUE", cat: "Naturaleza", icon: "🌲" },
+      { word: "ÁRBOL", cat: "Naturaleza", icon: "🌳" },
+      { word: "FLOR", cat: "Naturaleza", icon: "🌸" },
+      { word: "HIERBA", cat: "Naturaleza", icon: "🌱" },
+      { word: "HOJA", cat: "Naturaleza", icon: "🍃" },
+      { word: "PLANTA", cat: "Naturaleza", icon: "🪴" },
+      { word: "PIEDRA", cat: "Naturaleza", icon: "🪨" },
+      { word: "ARENA", cat: "Naturaleza", icon: "🏖️" },
+      { word: "TIERRA", cat: "Naturaleza", icon: "🌍" },
+      { word: "FUEGO", cat: "Naturaleza", icon: "🔥" },
+      { word: "VOLCÁN", cat: "Naturaleza", icon: "🌋" },
+      { word: "ISLA", cat: "Naturaleza", icon: "🏝️" },
+      { word: "PLAYA", cat: "Naturaleza", icon: "🏖️" },
+      { word: "CAMPO", cat: "Naturaleza", icon: "🌾" },
+      { word: "DESIERTO", cat: "Naturaleza", icon: "🏜️" },
+      { word: "CUEVA", cat: "Naturaleza", icon: "🕳️" },
+      { word: "NIEBLA", cat: "Naturaleza", icon: "🌫️" },
+      { word: "HIELO", cat: "Naturaleza", icon: "🧊" },
+      { word: "TRUENO", cat: "Naturaleza", icon: "🌩️" },
+      { word: "VAPOR", cat: "Naturaleza", icon: "♨️" },
+      { word: "ROSA", cat: "Naturaleza", icon: "🌹" },
+      { word: "CLAVEL", cat: "Naturaleza", icon: "🌺" },
+      { word: "GIRASOL", cat: "Naturaleza", icon: "🌻" },
+      { word: "RAMA", cat: "Naturaleza", icon: "🪵" },
+      { word: "SEMILLA", cat: "Naturaleza", icon: "🫘" },
+      { word: "FRUTO", cat: "Naturaleza", icon: "🍎" },
+      { word: "PIÑA", cat: "Naturaleza", icon: "🌲" },
+      { word: "CACTUS", cat: "Naturaleza", icon: "🌵" },
+      { word: "PALMERA", cat: "Naturaleza", icon: "🌴" },
+      { word: "AMAPOLA", cat: "Naturaleza", icon: "🌺" },
+      { word: "SETAL", cat: "Naturaleza", icon: "🍄" },
+
+      // TRANSPORTES (30+)
+      { word: "COCHE", cat: "Transportes", icon: "🚗" },
+      { word: "AUTOBÚS", cat: "Transportes", icon: "🚌" },
+      { word: "TREN", cat: "Transportes", icon: "🚆" },
+      { word: "AVIÓN", cat: "Transportes", icon: "✈️" },
+      { word: "HELICÓPTERO", cat: "Transportes", icon: "🚁" },
+      { word: "BARCO", cat: "Transportes", icon: "🚢" },
+      { word: "SUBMARINO", cat: "Transportes", icon: "🥽" },
+      { word: "BICICLETA", cat: "Transportes", icon: "🚲" },
+      { word: "MOTO", cat: "Transportes", icon: "🏍️" },
+      { word: "CAMIÓN", cat: "Transportes", icon: "🚛" },
+      { word: "TRACTOR", cat: "Transportes", icon: "🚜" },
+      { word: "TAXI", cat: "Transportes", icon: "🚕" },
+      { word: "METRO", cat: "Transportes", icon: "🚇" },
+      { word: "COHETE", cat: "Transportes", icon: "🚀" },
+      { word: "AMBULANCIA", cat: "Transportes", icon: "🚑" },
+      { word: "BOMBERO", cat: "Transportes", icon: "🚒" },
+      { word: "POLICÍA", cat: "Transportes", icon: "🚓" },
+      { word: "AVIONETA", cat: "Transportes", icon: "🛩️" },
+      { word: "VELERO", cat: "Transportes", icon: "⛵" },
+      { word: "FURGONETA", cat: "Transportes", icon: "🚐" },
+      { word: "PATINETE", cat: "Transportes", icon: "🛴" },
+      { word: "GRÚA", cat: "Transportes", icon: "🏗️" },
+      { word: "CANOA", cat: "Transportes", icon: "🚣" },
+      { word: "GLOBO", cat: "Transportes", icon: "🎈" },
+      { word: "TRANVÍA", cat: "Transportes", icon: "🚊" },
+      { word: "BOTE", cat: "Transportes", icon: "🛶" },
+      { word: "YATE", cat: "Transportes", icon: "🛥️" },
+      { word: "CARRITO", cat: "Transportes", icon: "🛒" },
+      { word: "CARRO", cat: "Transportes", icon: "🛺" },
+      { word: "TRINEC", cat: "Transportes", icon: "🛷" },
+
+      // OBJETOS Y JUGUETES (35+)
+      { word: "BALÓN", cat: "Objetos", icon: "⚽" },
+      { word: "PELOTA", cat: "Objetos", icon: "🏀" },
+      { word: "MUÑECA", cat: "Objetos", icon: "🪆" },
+      { word: "PUZZLE", cat: "Objetos", icon: "🧩" },
+      { word: "TAMBOR", cat: "Objetos", icon: "🥁" },
+      { word: "PIANO", cat: "Objetos", icon: "🎹" },
+      { word: "FLAUTA", cat: "Objetos", icon: "🪈" },
+      { word: "PELUCHE", cat: "Objetos", icon: "🧸" },
+      { word: "DADO", cat: "Objetos", icon: "🎲" },
+      { word: "CARTA", cat: "Objetos", icon: "✉️" },
+      { word: "ROBOT", cat: "Objetos", icon: "🤖" },
+      { word: "COMETA", cat: "Objetos", icon: "🪁" },
+      { word: "YOYÓ", cat: "Objetos", icon: "🪀" },
+      { word: "TROMPA", cat: "Objetos", icon: "🎺" },
+      { word: "REGALO", cat: "Objetos", icon: "🎁" },
+      { word: "LINTERNA", cat: "Objetos", icon: "🔦" },
+      { word: "TELÉFONO", cat: "Objetos", icon: "📞" },
+      { word: "BOMBILLA", cat: "Objetos", icon: "💡" },
+      { word: "MONEDA", cat: "Objetos", icon: "🪙" },
+      { word: "CAJA", cat: "Objetos", icon: "📦" },
+      { word: "BOLSA", cat: "Objetos", icon: "🛍️" },
+      { word: "ESCALERA", cat: "Objetos", icon: "🪜" },
+      { word: "MARTILLO", cat: "Objetos", icon: "🔨" },
+      { word: "ESCOBA", cat: "Objetos", icon: "🧹" },
+      { word: "CUBO", cat: "Objetos", icon: "🪣" },
+      { word: "PALA", cat: "Objetos", icon: "🪏" },
+      { word: "RAQUETA", cat: "Objetos", icon: "🎾" },
+      { word: "PATÍN", cat: "Objetos", icon: "🛼" },
+      { word: "DIANA", cat: "Objetos", icon: "🎯" },
+      { word: "CASCO", cat: "Objetos", icon: "🪖" },
+      { word: "MEDALLA", cat: "Objetos", icon: "🥇" },
+      { word: "COPA", cat: "Objetos", icon: "🏆" },
+      { word: "TROFEO", cat: "Objetos", icon: "🏆" },
+      { word: "SILBATO", cat: "Objetos", icon: "📢" },
+      { word: "MÁSCARA", cat: "Objetos", icon: "🎭" },
+
+      // PROFESIONES Y PERSONAS (25+)
+      { word: "PROFESOR", cat: "Profesiones", icon: "👨‍🏫" },
+      { word: "ALUMNO", cat: "Profesiones", icon: "🧑‍🎓" },
+      { word: "MÉDICO", cat: "Profesiones", icon: "👨‍⚕️" },
+      { word: "ENFERMERO", cat: "Profesiones", icon: "👩‍⚕️" },
+      { word: "COCINERO", cat: "Profesiones", icon: "🧑‍🍳" },
+      { word: "PINTOR", cat: "Profesiones", icon: "🧑‍🎨" },
+      { word: "MÚSICO", cat: "Profesiones", icon: "🧑‍🎤" },
+      { word: "PILOTO", cat: "Profesiones", icon: "🧑‍✈️" },
+      { word: "MARINERO", cat: "Profesiones", icon: "🧑‍✈️" },
+      { word: "JARDINERO", cat: "Profesiones", icon: "🧑‍🌾" },
+      { word: "CARPINTERO", cat: "Profesiones", icon: "🪵" },
+      { word: "VETERINARIO", cat: "Profesiones", icon: "🐶" },
+      { word: "ASTRONAUTA", cat: "Profesiones", icon: "🧑‍🚀" },
+      { word: "MAGO", cat: "Profesiones", icon: "🧙" },
+      { word: "JUEZ", cat: "Profesiones", icon: "🧑‍⚖️" },
+      { word: "CARTERO", cat: "Profesiones", icon: "📬" },
+      { word: "MECÁNICO", cat: "Profesiones", icon: "🔧" },
+      { word: "DENTISTA", cat: "Profesiones", icon: "🦷" },
+      { word: "BEBÉ", cat: "Profesiones", icon: "👶" },
+      { word: "NIÑO", cat: "Profesiones", icon: "👦" },
+      { word: "NIÑA", cat: "Profesiones", icon: "👧" },
+      { word: "PAPÁ", cat: "Profesiones", icon: "👨" },
+      { word: "MAMÁ", cat: "Profesiones", icon: "👩" },
+      { word: "ABUELO", cat: "Profesiones", icon: "👴" },
+      { word: "ABUELA", cat: "Profesiones", icon: "👵" },
+      { word: "HERMANO", cat: "Profesiones", icon: "👦" },
+      { word: "AMIGO", cat: "Profesiones", icon: "🧑‍🤝‍🧑" },
+      { word: "REY", cat: "Profesiones", icon: "🤴" },
+      { word: "REINA", cat: "Profesiones", icon: "👸" },
+      { word: "PIRATA", cat: "Profesiones", icon: "🏴‍☠️" },
+      { word: "PAYASO", cat: "Profesiones", icon: "🤡" },
+
+      // ACCIONES Y OTROS (30+)
+      { word: "JUGAR", cat: "Acciones", icon: "🎮" },
+      { word: "LEER", cat: "Acciones", icon: "📖" },
+      { word: "ESCRIBIR", cat: "Acciones", icon: "✍️" },
+      { word: "PINTAR", cat: "Acciones", icon: "🎨" },
+      { word: "CANTAR", cat: "Acciones", icon: "🎤" },
+      { word: "BAILAR", cat: "Acciones", icon: "💃" },
+      { word: "CORRER", cat: "Acciones", icon: "🏃" },
+      { word: "SALTAR", cat: "Acciones", icon: "🦘" },
+      { word: "NADAR", cat: "Acciones", icon: "🏊" },
+      { word: "COMER", cat: "Acciones", icon: "🍽️" },
+      { word: "BEBER", cat: "Acciones", icon: "🥤" },
+      { word: "DORMIR", cat: "Acciones", icon: "😴" },
+      { word: "REÍR", cat: "Acciones", icon: "😄" },
+      { word: "HABLAR", cat: "Acciones", icon: "🗣️" },
+      { word: "ESCUCHAR", cat: "Acciones", icon: "👂" },
+      { word: "MIRAR", cat: "Acciones", icon: "👀" },
+      { word: "VOLAR", cat: "Acciones", icon: "🕊️" },
+      { word: "SOÑAR", cat: "Acciones", icon: "💭" },
+      { word: "ABRIR", cat: "Acciones", icon: "🔓" },
+      { word: "CERRAR", cat: "Acciones", icon: "🔒" },
+      { word: "COMPRAR", cat: "Acciones", icon: "🛍️" },
+      { word: "APRENDER", cat: "Acciones", icon: "🧠" },
+      { word: "PENSAR", cat: "Acciones", icon: "🤔" },
+      { word: "AMAR", cat: "Acciones", icon: "❤️" },
+      { word: "AYUDAR", cat: "Acciones", icon: "🤝" },
+      { word: "DIBUJAR", cat: "Acciones", icon: "✏️" },
+      { word: "SUBIR", cat: "Acciones", icon: "🧗" },
+      { word: "BAJAR", cat: "Acciones", icon: "🛝" },
+      { word: "LAVAR", cat: "Acciones", icon: "🧼" },
+      { word: "LIMPIAR", cat: "Acciones", icon: "🧹" }
+    ];
+
+    // WEB AUDIO API SOUND SYNTHESIZER
+    class SoundEngine {
+      constructor() {
+        this.ctx = null;
+      }
+
+      initCtx() {
+        if (!this.ctx) {
+          const AudioContext = window.AudioContext || window.webkitAudioContext;
+          this.ctx = new AudioContext();
+        }
+        if (this.ctx.state === 'suspended') {
+          this.ctx.resume();
+        }
+      }
+
+      playCorrect() {
+        this.initCtx();
+        const now = this.ctx.currentTime;
+        
+        // Tone 1
+        const osc1 = this.ctx.createOscillator();
+        const gain1 = this.ctx.createGain();
+        osc1.type = 'sine';
+        osc1.frequency.setValueAtTime(523.25, now); // C5
+        osc1.frequency.exponentialRampToValueAtTime(659.25, now + 0.15); // E5
+        gain1.gain.setValueAtTime(0.25, now);
+        gain1.gain.exponentialRampToValueAtTime(0.001, now + 0.3);
+        osc1.connect(gain1);
+        gain1.connect(this.ctx.destination);
+        osc1.start(now);
+        osc1.stop(now + 0.3);
+
+        // Tone 2 (Sparkle high note)
+        const osc2 = this.ctx.createOscillator();
+        const gain2 = this.ctx.createGain();
+        osc2.type = 'triangle';
+        osc2.frequency.setValueAtTime(1046.50, now + 0.12); // C6
+        gain2.gain.setValueAtTime(0.2, now + 0.12);
+        gain2.gain.exponentialRampToValueAtTime(0.001, now + 0.45);
+        osc2.connect(gain2);
+        gain2.connect(this.ctx.destination);
+        osc2.start(now + 0.12);
+        osc2.stop(now + 0.45);
+      }
+
+      playError() {
+        this.initCtx();
+        const now = this.ctx.currentTime;
+
+        const osc = this.ctx.createOscillator();
+        const gain = this.ctx.createGain();
+        osc.type = 'sawtooth';
+        osc.frequency.setValueAtTime(180, now);
+        osc.frequency.linearRampToValueAtTime(90, now + 0.25);
+        gain.gain.setValueAtTime(0.2, now);
+        gain.gain.exponentialRampToValueAtTime(0.001, now + 0.25);
+
+        osc.connect(gain);
+        gain.connect(this.ctx.destination);
+        osc.start(now);
+        osc.stop(now + 0.25);
+      }
+
+      playVictoryFanfare() {
+        this.initCtx();
+        const now = this.ctx.currentTime;
+        const notes = [523.25, 659.25, 783.99, 1046.50]; // C5, E5, G5, C6
+        
+        notes.forEach((freq, idx) => {
+          const osc = this.ctx.createOscillator();
+          const gain = this.ctx.createGain();
+          const startTime = now + (idx * 0.09);
+          
+          osc.type = 'sine';
+          osc.frequency.setValueAtTime(freq, startTime);
+          gain.gain.setValueAtTime(0.3, startTime);
+          gain.gain.exponentialRampToValueAtTime(0.001, startTime + 0.35);
+          
+          osc.connect(gain);
+          gain.connect(this.ctx.destination);
+          osc.start(startTime);
+          osc.stop(startTime + 0.35);
+        });
+      }
+
+      playSelect() {
+        this.initCtx();
+        const now = this.ctx.currentTime;
+        const osc = this.ctx.createOscillator();
+        const gain = this.ctx.createGain();
+        osc.type = 'sine';
+        osc.frequency.setValueAtTime(400, now);
+        gain.gain.setValueAtTime(0.08, now);
+        gain.gain.exponentialRampToValueAtTime(0.001, now + 0.05);
+        osc.connect(gain);
+        gain.connect(this.ctx.destination);
+        osc.start(now);
+        osc.stop(now + 0.05);
+      }
+    }
+
+    const sounds = new SoundEngine();
+
+    // GAME STATE VARIABLES
+    let shuffledQueue = [];
+    let currentWordObj = null;
+    let userSlots = []; // Array representing current filled characters
+    let activeSlotIndex = -1; // Index of the currently focused vowel slot
+    let isTeacherMode = false;
+    let score = 0;
+    let streak = 0;
+    let isProcessingInput = false;
+
+    // Vowel definition regex & sets
+    const VOWELS_REGEX = /[AEIOUÁÉÍÓÚÜaeiouáéíóúü]/;
+    
+    // Normalization dictionary for accents
+    function normalizeVowel(char) {
+      if (!char) return '';
+      const upper = char.toUpperCase();
+      switch (upper) {
+        case 'Á': return 'A';
+        case 'É': return 'E';
+        case 'Í': return 'I';
+        case 'Ó': return 'O';
+        case 'Ú': case 'Ü': return 'U';
+        default: return upper;
+      }
+    }
+
+    function isVowel(char) {
+      return VOWELS_REGEX.test(char);
+    }
+
+    // Shuffle Array Utility (Fisher-Yates)
+    function shuffleArray(array) {
+      const arr = [...array];
+      for (let i = arr.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [arr[i], arr[j]] = [arr[j], arr[i]];
+      }
+      return arr;
+    }
+
+    // INITIALIZATION
+    window.onload = function() {
+      resetQueue();
+      loadNextWord();
+      renderTeacherWordsList();
+    };
+
+    function resetQueue() {
+      shuffledQueue = shuffleArray(WORD_DATABASE);
+    }
+
+    function loadNextWord() {
+      if (shuffledQueue.length === 0) {
+        resetQueue();
+      }
+
+      if (!isTeacherMode) {
+        currentWordObj = shuffledQueue.pop();
+      }
+
+      setupWordBoard(currentWordObj);
+    }
+
+    function setupWordBoard(wordObj) {
+      currentWordObj = wordObj;
+      isProcessingInput = false;
+      const word = wordObj.word;
+      userSlots = new Array(word.length);
+
+      // Pre-fill consonants, leave vowels null
+      for (let i = 0; i < word.length; i++) {
+        if (!isVowel(word[i])) {
+          userSlots[i] = word[i];
+        } else {
+          userSlots[i] = null;
+        }
+      }
+
+      // UI updates for badges and images
+      document.getElementById('categoryName').textContent = wordObj.cat;
+      document.getElementById('wordIcon').textContent = wordObj.icon;
+
+      if (isTeacherMode) {
+        document.getElementById('imageContainer').classList.add('hidden');
+        document.getElementById('teacherNoIconBox').classList.remove('hidden');
+        document.getElementById('teacherModeIndicator').classList.remove('hidden');
+      } else {
+        document.getElementById('imageContainer').classList.remove('hidden');
+        document.getElementById('teacherNoIconBox').classList.add('hidden');
+        document.getElementById('teacherModeIndicator').classList.add('hidden');
+      }
+
+      // Set default active slot: first empty vowel left-to-right
+      autoSelectNextEmptySlot();
+
+      // Render the card slots UI
+      renderSlotsUI();
+    }
+
+    function renderSlotsUI() {
+      const container = document.getElementById('wordSlots');
+      container.innerHTML = '';
+
+      const word = currentWordObj.word;
+
+      for (let i = 0; i < word.length; i++) {
+        const isV = isVowel(word[i]);
+        const slotEl = document.createElement('div');
+
+        if (!isV) {
+          // Consonant card
+          slotEl.className = 'letter-card bg-slate-100 text-slate-800 border-2 border-slate-300 rounded-2xl w-12 h-16 sm:w-16 sm:h-20 md:w-20 md:h-24 flex items-center justify-center text-3xl sm:text-4xl md:text-5xl font-bold shadow-sm';
+          slotEl.textContent = word[i];
+        } else {
+          // Vowel slot
+          const isFilled = userSlots[i] !== null;
+          const isActive = i === activeSlotIndex;
+
+          let classes = 'letter-card vowel-slot rounded-2xl w-12 h-16 sm:w-16 sm:h-20 md:w-20 md:h-24 flex items-center justify-center text-3xl sm:text-4xl md:text-5xl font-bold cursor-pointer transition-all duration-200 ';
+
+          if (isFilled) {
+            classes += 'filled-correct';
+          } else if (isActive) {
+            classes += 'active-slot';
+          }
+
+          slotEl.className = classes;
+          slotEl.id = `slot-${i}`;
+          slotEl.textContent = isFilled ? userSlots[i] : '?';
+
+          // Manual selection on tap/click
+          slotEl.onclick = () => selectSlotManually(i);
+        }
+
+        container.appendChild(slotEl);
+      }
+    }
+
+    function autoSelectNextEmptySlot() {
+      const word = currentWordObj.word;
+      for (let i = 0; i < word.length; i++) {
+        if (isVowel(word[i]) && userSlots[i] === null) {
+          activeSlotIndex = i;
+          return;
+        }
+      }
+      activeSlotIndex = -1; // All filled
+    }
+
+    function selectSlotManually(index) {
+      if (userSlots[index] !== null) return; // Already correctly filled
+      sounds.playSelect();
+      activeSlotIndex = index;
+      renderSlotsUI();
+    }
+
+    function handleVowelInput(vowelPressed) {
+      if (isProcessingInput || activeSlotIndex === -1) return;
+
+      const targetChar = currentWordObj.word[activeSlotIndex];
+      const targetNormalized = normalizeVowel(targetChar);
+
+      const slotElement = document.getElementById(`slot-${activeSlotIndex}`);
+
+      if (vowelPressed === targetNormalized) {
+        // CORRECT MATCH
+        sounds.playCorrect();
+        userSlots[activeSlotIndex] = targetChar; // Keeps accent if present (e.g. Á)
+        
+        // Render updated state
+        renderSlotsUI();
+
+        // Check if full word completed
+        if (userSlots.every(slot => slot !== null)) {
+          handleWordCompletion();
+        } else {
+          autoSelectNextEmptySlot();
+          renderSlotsUI();
+        }
+
+      } else {
+        // INCORRECT MATCH
+        sounds.playError();
+
+        // Device vibration support
+        if (navigator.vibrate) {
+          navigator.vibrate(150);
+        }
+
+        // Add shake animation
+        if (slotElement) {
+          slotElement.classList.add('animate-shake');
+          setTimeout(() => {
+            slotElement.classList.remove('animate-shake');
+          }, 400);
+        }
+
+        streak = 0;
+        updateStats();
+      }
+    }
+
+    function handleWordCompletion() {
+      isProcessingInput = true;
+      sounds.playVictoryFanfare();
+
+      // Trigger Confetti Celebration
+      if (typeof confetti === 'function') {
+        confetti({
+          particleCount: 70,
+          spread: 60,
+          origin: { y: 0.7 }
+        });
+      }
+
+      score++;
+      streak++;
+      updateStats();
+
+      // Pronounce the completed word
+      setTimeout(() => {
+        speakCurrentWord();
+      }, 300);
+
+      // Auto-load next word after delay
+      setTimeout(() => {
+        loadNextWord();
+      }, 2200);
+    }
+
+    function speakCurrentWord() {
+      if (!('speechSynthesis' in window)) return;
+
+      window.speechSynthesis.cancel(); // Stop any pending speech
+      const utterance = new SpeechSynthesisUtterance(currentWordObj.word.toLowerCase());
+      utterance.lang = 'es-ES';
+      utterance.rate = 0.85; // Slightly slower for clarity in children
+      utterance.pitch = 1.0;
+      window.speechSynthesis.speak(utterance);
+    }
+
+    function skipWord() {
+      sounds.playSelect();
+      loadNextWord();
+    }
+
+    function updateStats() {
+      document.getElementById('scoreCount').textContent = score;
+      document.getElementById('streakCount').textContent = streak;
+    }
+
+    // TEACHER MODE MODAL LOGIC
+    function openTeacherModal() {
+      sounds.playSelect();
+      const modal = document.getElementById('teacherModal');
+      modal.classList.remove('opacity-0', 'pointer-events-none');
+      modal.firstElementChild.classList.remove('scale-95');
+      modal.firstElementChild.classList.add('scale-100');
+      filterTeacherWords();
+    }
+
+    function closeTeacherModal() {
+      const modal = document.getElementById('teacherModal');
+      modal.classList.add('opacity-0', 'pointer-events-none');
+      modal.firstElementChild.classList.remove('scale-100');
+      modal.firstElementChild.classList.add('scale-95');
+    }
+
+    function renderTeacherWordsList() {
+      filterTeacherWords();
+    }
+
+    function filterTeacherWords() {
+      const search = document.getElementById('teacherSearchInput').value.toLowerCase().trim();
+      const catFilter = document.getElementById('teacherCategoryFilter').value;
+
+      const filtered = WORD_DATABASE.filter(item => {
+        const matchesSearch = item.word.toLowerCase().includes(search);
+        const matchesCat = catFilter === 'ALL' || item.cat === catFilter;
+        return matchesSearch && matchesCat;
+      });
+
+      const grid = document.getElementById('teacherWordsGrid');
+      grid.innerHTML = '';
+
+      filtered.forEach(item => {
+        const card = document.createElement('button');
+        card.className = 'bg-slate-50 hover:bg-indigo-50 border border-slate-200 hover:border-indigo-300 rounded-xl p-3 flex flex-col items-center justify-center transition-all text-center group cursor-pointer';
+        card.onclick = () => selectTeacherWord(item);
+
+        card.innerHTML = `
+          <span class="font-bold text-lg text-slate-800 group-hover:text-indigo-600">${item.word}</span>
+          <span class="text-xs text-slate-400 font-sans mt-0.5">${item.cat}</span>
+        `;
+
+        grid.appendChild(card);
+      });
+
+      document.getElementById('teacherWordCount').textContent = `Mostrando ${filtered.length} palabras`;
+    }
+
+    function selectTeacherWord(wordObj) {
+      isTeacherMode = true;
+      closeTeacherModal();
+      setupWordBoard(wordObj);
+    }
+
+    function exitTeacherMode() {
+      isTeacherMode = false;
+      loadNextWord();
+    }
+
+    // KEYBOARD LISTENER (Physical keyboard support for classroom computers)
+    document.addEventListener('keydown', (e) => {
+      const key = e.key.toUpperCase();
+      const normalizedKey = normalizeVowel(key);
+
+      if (['A', 'E', 'I', 'O', 'U'].includes(normalizedKey)) {
+        handleVowelInput(normalizedKey);
+      }
+    });
+
+    // FULLSCREEN TOGGLE
+    function toggleFullscreen() {
+      sounds.playSelect();
+      if (!document.fullscreenElement) {
+        document.documentElement.requestFullscreen().catch(err => {
+          console.warn(`Error attempting to enable fullscreen: ${err.message}`);
+        });
+      } else {
+        if (document.exitFullscreen) {
+          document.exitFullscreen();
+        }
+      }
+    }
+  </script>
+</body>
+</html>
